@@ -1,63 +1,68 @@
-import pandas as pd    #importing all the necessary libraries
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import itertools
 
-df = pd.read_csv("StudentPerformanceFactors.csv") #loading the data in pandas dataframe
+df = pd.read_csv("StudentPerformanceFactors.csv")  # Loading the data in pandas dataframe
 
-print(df.head())    #inspecting few rows to see if the data is loaded corectly
+print(df.head())  # Inspecting a few rows to see if the data is loaded correctly
 
-print("total coloumn",df.shape[1])   #print the total row and coloumn in the dataset
+print("total columns", df.shape[1])  # Print the total rows and columns in the dataset
 print("total rows", df.shape[0])
 
-print(df.isnull ().sum())   #prints the total number of missing values in the dataset
+print(df.isnull().sum())  # Prints the total number of missing values in the dataset
 
-print(df.info())   #gives the count of not null values in each column with the datatype of the column
+print(df.info())  # Gives the count of not null values in each column with the datatype of the column
 
-df_cleaned = df.dropna()
-print("removing missing value" , df_cleaned)  #handling missing value
+df_cleaned = df.dropna()  # Remove missing values
+print("Removing missing value", df_cleaned)  # Handling missing values
 
+plt.figure(figsize=(10, 6))  # Creates a figure with the specified size
+sns.boxplot(data=df_cleaned)  # Creates a box plot to see the distribution of the data in all columns
+plt.xticks(rotation=90)  # Ensures columns do not overlap with each other
+plt.show()  # Visualizing the data using boxplot
 
+# Log transformation to handle skewed distribution
+df_cleaned.loc[:, 'Exam_Score'] = np.log1p(df_cleaned["Exam_Score"])
 
-
-plt.figure (figsize=(10,6)) #creates a figure with the specified size
-sns.boxplot(data= df_cleaned) #creates a box plot to see the distribution of the data in all coloumns Boxplots help detect outliers
-plt.xticks(rotation =90)  #ensures coloumn doesnot overlap with each other
-plt.show()   #visualizing the data using boxplot to see the distribution of the data
-
-df_cleaned['Exam_Score']= np.log1p(df_cleaned["Exam_Score"])    #log transformation used because it has a skewed distribution
-df_cleaned = df_cleaned[df_cleaned["Hours_Studied"] >= 23]    # removing the vlaues of the row if it is more than 23 because that is not possible
-#we can handle the data by using mean = average , mode = frequent value , and median = middle value as well
+# Removing rows where Hours_Studied is greater than 23 (invalid data)
+df_cleaned = df_cleaned[df_cleaned["Hours_Studied"] <= 23]
 
 print(df_cleaned.dtypes)
 basic_stats = df_cleaned.describe()
-print(basic_stats)  #prints the basic statistics of the dataset
+print(basic_stats)  # Prints the basic statistics of the dataset
 
-
-correlation_matrix = df_cleaned.corr()
-plt.figure(figsize = (6,4))
-sns.heatmap(correlation_matrix, annot = True, cmap= ' coolwarm', vmin=1, vmax=1)
-plt.title("Correlation Matrix")
-plt.show()  #visualizing the correlation matrix to see the correlation between the variables
-
+# Correlation matrix calculation (only for numeric columns)
 numeric_columns = df_cleaned.select_dtypes(include=['number']).columns
-categorical_columns = df_cleaned.select_dtypes(include=['object']).columns
+correlation_matrix = df_cleaned[numeric_columns].corr()
 
+plt.figure(figsize=(6, 4))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
+plt.title("Correlation Matrix")
+plt.show()  # Visualizing the correlation matrix to see the correlation between the variables
+
+# Plot Histograms for numeric columns
 plt.figure(figsize=(12, 8))
 for i, col in enumerate(numeric_columns, 1):
     plt.subplot(3, 3, i)  # Adjusts grid size based on the number of numerical features
-    sns.histplot(df_cleaned[col], bins=20, kde=True, color='skyblue')  #kde =True gives smooth density curve
+    sns.histplot(df_cleaned[col], bins=20, kde=True, color='skyblue')  # KDE = True gives smooth density curve
     plt.title(f"Histogram of {col}")
     plt.xlabel(col)
     plt.ylabel("count")
-plt.tight_layout()  #gives a nice layout to the plot
+plt.tight_layout()  # Gives a nice layout to the plot
 plt.show()
 
-#Plot Bar Charts for Categorical Feature
+# Plot Bar Charts for Categorical Features
+categorical_columns = df_cleaned.select_dtypes(include=['object']).columns
+
+# Adjust the grid size based on the number of categorical columns
+rows = (len(categorical_columns) // 3) + 1  # Calculate rows needed based on the number of columns
+
 plt.figure(figsize=(12, 8))
-for i, col in enumerate(categorical_columns, 1):  #enumerate  assigns an index (i) starting from 1 and creates subplot dinamically
-    plt.subplot(3, 3, i)  # Adjusts grid size based on the number of categorical features
-    sns.countplot(data=df_cleaned, x=col, palette="viridis")  #countplot gives the count of each category
+for i, col in enumerate(categorical_columns, 1):
+    plt.subplot(rows, 3, i)  # Dynamically adjust grid size based on number of features
+    sns.countplot(data=df_cleaned, x=col, palette="viridis")  # Countplot gives the count of each category
     plt.xticks(rotation=45)  # Rotates labels for better readability
     plt.title(f"Bar Chart of {col}")
     plt.xlabel(col)
@@ -65,16 +70,16 @@ for i, col in enumerate(categorical_columns, 1):  #enumerate  assigns an index (
 plt.tight_layout()
 plt.show()
 
-import itertools
-
-# Selecting numerical features for scatter plots
-numerical_columns = df_cleaned.select_dtypes(include=['int64', 'float64']).columns
-
+# Scatter plots for combinations of numerical features
 plt.figure(figsize=(12, 8))
-combinations = list(itertools.combinations(numerical_columns, 2))  # Generate all unique pairs of numerical features
+combinations = list(itertools.combinations(numeric_columns, 2))  # Generate all unique pairs of numerical features
 
-for i, (col1, col2) in enumerate(combinations, 1):  #This line loops through all feature pairs and assigns values to col1 and col2.
-    plt.subplot(4, 4, i)  # Adjust the grid size if needed
+# Adjust grid size based on the number of combinations
+rows = (len(combinations) // 4) + 1  # Calculate rows needed based on the number of combinations
+cols = 4  # Fixed number of columns (adjust as needed)
+
+for i, (col1, col2) in enumerate(combinations, 1):  # Loop through all feature pairs
+    plt.subplot(rows, cols, i)  # Adjust grid size
     sns.scatterplot(data=df_cleaned, x=col1, y=col2, alpha=0.5, color="blue")
     plt.title(f"{col1} vs {col2}")
     plt.xlabel(col1)
@@ -83,8 +88,9 @@ for i, (col1, col2) in enumerate(combinations, 1):  #This line loops through all
 plt.tight_layout()
 plt.show()
 
+# Box plots for numerical features
 plt.figure(figsize=(12, 8))
-for i, col in enumerate(numerical_columns, 1):
+for i, col in enumerate(numeric_columns, 1):
     plt.subplot(3, 3, i)  # Adjust grid size
     sns.boxplot(data=df_cleaned, y=col, color="lightcoral")  # Box plot to check for outliers
     plt.title(f"Box Plot of {col}")
@@ -92,5 +98,3 @@ for i, col in enumerate(numerical_columns, 1):
 
 plt.tight_layout()
 plt.show()
-
-
